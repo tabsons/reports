@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Get Duplicate Stories</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+    }
+
+    .container {
+      max-width: 600px;
+      margin: 50px auto;
+      background-color: #fff;
+      padding: 30px;
+      border-radius: 8px;
+      box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+      position: relative;
+    }
+
+    .sform h3 {
+      margin-bottom: 20px;
+      text-align: center;
+      color: #333;
+    }
+
+    .filename-box {
+      margin-bottom: 20px;
+      text-align: center;
+    }
+
+    .filename-text {
+      font-weight: bold;
+    }
+
+    .file-input-container {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+
+    .custom-file-upload {
+      display: inline-block;
+      padding: 10px 20px;
+      background-color: #0056b3;
+      color: #fff;
+      text-decoration: none;
+      border-radius: 5px;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+    }
+
+    .custom-file-upload:hover {
+      background-color: #004080;
+    }
+
+    p {
+      margin-bottom: 15px;
+    }
+
+    label {
+      font-weight: bold;
+      display: block;
+      margin-bottom: 5px;
+    }
+
+    .select {
+      width: 100%;
+      padding: 10px;
+      border-radius: 5px;
+      border: 1px solid #ccc;
+      transition: border-color 0.3s ease;
+    }
+
+    .select:focus {
+      border-color: #34efdf;
+      outline: none;
+    }
+
+    input[type="submit"] {
+      display: block;
+      width: 100%;
+      padding: 10px;
+      background-color: #0056b3;
+      color: #fff;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+    }
+
+    input[type="submit"]:hover {
+      background-color: #004080;
+    }
+
+    /* Loading Icon Styles */
+    .loading-container {
+      display: none;
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(255, 255, 255, 0.8); /* Semi-transparent white background */
+      z-index: 999; /* Ensure it's on top */
+    }
+
+    .loading-content {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      text-align: center;
+    }
+
+    .loader {
+      border: 4px solid #f3f3f3;
+      border-top: 4px solid #3498db;
+      border-radius: 50%;
+      width: 30px;
+      height: 30px;
+      animation: spin 1s linear infinite;
+      margin-bottom: 20px;
+    }
+
+    @keyframes spin {
+      0% {
+        transform: rotate(0deg);
+      }
+      100% {
+        transform: rotate(360deg);
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="sform">
+      <h3>Get Duplicate Stories</h3>
+      <form method="post" enctype="multipart/form-data" onsubmit="showLoading()">
+        <div class="filename-box">
+          <span class="filename-text" id="file-name"></span>
+        </div>
+        <div class="file-input-container">
+          <label class="custom-file-upload">
+            Upload
+            <input type="file" accept=".xlsx" id="file" name="file" onchange="displayFileName()">
+          </label>
+        </div>
+        <p>
+          <label for="Ratio">Select Ratio:</label>
+          <select name="Ratio" id="Ratio" class="select">
+            <option value="40%">40%</option>
+            <option value="60%">60%</option>
+          </select>
+        </p>
+        <input type="submit" value="submit">
+      </form>
+    </div>
+    <!-- Loading Icon -->
+    <div class="loading-container" id="loading-container">
+      <div class="loading-content">
+        <div class="loader"></div>
+        <p>Loading...</p>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function displayFileName() {
+      var fileName = document.getElementById('file').files[0].name;
+      document.getElementById('file-name').innerHTML = fileName;
+    }
+
+    function showLoading() {
+      document.getElementById('loading-container').style.display = 'block';
+      // Simulate a delay to show the loading icon
+      setTimeout(hideLoading, 3000); // Change 3000 to the time it takes to download the file
+    }
+
+    function hideLoading() {
+      document.getElementById('loading-container').style.display = 'none';
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,574 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        * {
+            font-family: 'Poppins', sans-serif;
+        }
+         .form-container {
+            display: flex;
+            width: 100%;
+            gap: 10px;
+        }
+
+        .content {
+            background-color: #fff;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            width: 35%;
+        }
+        #result-container {
+            background-color: #fff;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            width: 80%;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            font-weight: bold;
+        }
+
+        select, input[type="text"] {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            box-sizing: border-box;
+            font-size: 16px;
+        }
+        select[name="search_channel"] {
+            width: 100%; 
+        }
+        
+        .row {
+            display: flex;
+            margin-top: 10px;
+        }
+
+        .col {
+            flex: 1;
+            margin-right: 10px;
+        }
+
+        .form-text {
+            color: #666;
+        }
+        .date-input-wrapper {
+            position: relative;
+        }
+
+        .date-input-wrapper input[type="date"] {
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            box-sizing: border-box;
+            font-size: 16px;
+            background-color: #f8f8f8;
+            cursor: pointer; 
+        }
+
+        .date-input-wrapper input[type="date"]::-webkit-calendar-picker-indicator {
+            position: absolute;
+            top: 0;
+            right: 0;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            opacity: 0; 
+            cursor: pointer; 
+        }
+
+        .btn-primary {
+            background-color: #007bff;
+            color: #fff;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            
+        }
+
+        .btn-primary:hover {
+            background-color: #0056b3;
+        }
+        /* ----------------------------------RESULT---------------------------------------------------------- */
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: rgba(255, 255, 255, 1);
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            animation: fadeInAnimation 0.5s ease;
+        }
+        
+        h1 {
+            margin-top: 0;
+            color: #333;
+            text-align: center;
+            font-family: 'Pacifico', cursive;
+            font-size: 42px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid #ddd;
+        }
+
+        .count-wrapper {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            animation: slideInAnimation 1s ease;
+        }
+
+        .count-label {
+            font-weight: bold;
+            font-size: 24px;
+            color: #333;
+            text-transform: uppercase;
+        }
+
+        .count-value {
+            font-size: 36px;
+            color: #4caf50;
+            background-color: rgba(255, 255, 255, 0.8);
+            padding: 10px 20px;
+            border-radius: 3px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+        }
+
+        table th,
+        table td {
+            padding: 10px;
+            border: 1px solid #ddd;
+            text-align: center;
+        }
+
+        table th {
+            background-color: #f5f5f5;
+            font-weight: bold;
+        }
+
+        .table-container {
+            max-height: 400px;
+            overflow-y: scroll;
+        }
+
+        .download-btn {
+            display: inline-block;
+            padding: 15px 30px;
+            background-color: #4caf50;
+            color: #fff;
+            text-decoration: none;
+            border-radius: 5px;
+            font-size: 18px;
+            transition: background-color 0.3s;
+            animation: pulseAnimation 2s ease infinite;
+        }
+
+        .loading-icon {
+            display: none;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 9999;
+        }
+
+        .download-btn:hover {
+            background-color: #45a049;
+        }
+
+        @keyframes fadeInAnimation {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        @keyframes slideInAnimation {
+            from { transform: translateX(-100%); opacity: 0; }
+            to { transform: translateX(0%); opacity: 1; }
+        }
+
+        @keyframes pulseAnimation {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); }
+        }
+    
+    </style>
+    
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+     <script>
+         $(document).ready(function() {
+              // Function to fetch channel data from server
+              function fetchChannelData() {
+                 // Simulated list of channel names and codes
+                 var channelData = {
+                    "Select Channel": "",
+                     "1st India News": "1015427",
+                     "Aaj Tak": "1010013",
+                     "ABP Ananda": "1010020",
+                     "ABP Asmita": "1010654",
+                     "ABP Ganga": "1015273",
+                     "ABP Majha": "1010021",
+                     "ABP News": "1010022",
+                     "Asianet News": "1010034",
+                     "Asianet Suvarna News": "1010420",
+                     "Bansal News": "1010041",
+                     "Bharat 24": "1010458",
+                     "Bharat Samachar": "1010005",
+                     "CNBC Awaaz": "1010065",
+                     "CNBC Bazar": "1010066",
+                     "CNBC TV18": "1010068",
+                     "CNN News18": "1010071",
+                     "DD India": "1010088",
+                     "DD News": "1010094",
+                     "Dighvijay 24x7 News": "1010815",
+                     "DY 365": "1010115",
+                     "Daily Post": "1015487",
+                     "ET Now": "1010118",
+                     "Good News Today": "1010430",
+                     "IBC 24": "1010169",
+                     "India News": "1010172",
+                     "India News Haryana": "1010173",
+                     "India News Punjab": "1010067",
+                     "India Today Television": "1010160",
+                     "India TV": "1010178",
+                     "Jan TV": "1010861",
+                     "Janta TV": "1010797",
+                     "Kalinga TV": "1010676",
+                     "Kanak News": "1010196",
+                     "Khabar Fast": "1010701",
+                     "Khabrain Abhi Tak": "1010517",
+                     "Kolkata TV": "1010205",
+                     "Living India News": "1010649",
+                     "Manorama News": "1010231",
+                     "Mathrubhumi News": "1010523",
+                     "MH One Prime": "1010244",
+                     "Mirror Now": "1010670",
+                     "News 24": "1010268",
+                     "NDTV 24x7": "1010259",
+                     "NDTV India": "1010261",
+                     "News Live": "1010271",
+                     "News Nation": "1010272",
+                     "News State Bihar Jharkhand": "1010902",
+                     "News State Madhya Pradesh/Chhattisgarh": "1010647",
+                     "News State UP/Uttarakhand": "1010504",
+                     "News X": "1010276",
+                     "News11 Bharat": "1010437",
+                     "News18 Bangla": "1010129",
+                     "News18 Bihar Jharkhand": "1010123",
+                     "News18 Gujarati": "1010130",
+                     "News18 India": "1010170",
+                     "News18 Kannada": "1010131",
+                     "News18 Lokmat": "1010171",
+                     "News18 Madhya Pradesh Chattisgarh": "1010127",
+                     "News18 Odia": "1010576",
+                     "News18 Punjab/Haryana": "1010125",
+                     "News 18 TamilNadu": "1010709",
+                     "News18 Rajasthan": "1010133",
+                     "News18 Uttar Pradesh Uttarakhand": "1010137",
+                     "NTV Telugu": "1010280",
+                     "News 7 Tamil": "1010615",
+                     "Nandighosha TV": "1015341",
+                     "OTV": "1010281",
+                     "Polimer News": "1010297",
+                     "Prag News": "1010298",
+                     "Protidin Time": "1010665",
+                     "PTC News": "1010302",
+                     "Public TV": "1010304",
+                     "Puthiya Thalaimurai": "1010305",
+                     "Patrika TV Rajasthan": "1010958",
+                     "R. Bangla": "1015370",
+                     "R. Kannada": "1015496",
+                     "Republic Bharat": "1010977",
+                     "Republic TV": "1010119",
+                     "Reporter TV": "1010318",
+                     "Saam TV": "1010326",
+                     "Sahara Samay Bihar & Jharkhand": "1010332",
+                     "Sakshi TV": "1010337",
+                     "Sandesh News": "1010341",
+                     "Sathiyam TV": "1010345",
+                     "STV Haryana": "1010581",
+                     "Sun News": "1010412",
+                     "T News": "1010421",
+                     "Times Now": "1010432",
+                     "Times Now Navbharat": "1010702",
+                     "TV 5 News": "1010439",
+                     "TV9 Bangla": "1015368",
+                     "TV9 Bharatvarsh": "1015268",
+                     "TV9 Gujarati": "1010440",
+                     "TV9 Kannada": "1010441",
+                     "TV9 Marathi": "1010442",
+                     "TV9 Telugu": "1010443",
+                     "Twenty Four": "1010912",
+                     "V6 News": "1010456",
+                     "Zee 24 Ghanta": "1010004",
+                     "Zee 24 Kalak": "1010293",
+                     "Zee 24 Taas": "1010468",
+                     "Zee Bihar Jharkhand": "1010488",
+                     "Zee Business": "1010473",
+                     "Zee Delhi NCR Haryana": "1010185",
+                     "Zee Madhya Pradesh Chhattisgarh": "1010482",
+                     "Zee News": "1010485",
+                     "Zee Odisha": "1010479",
+                     "Zee Punjab Haryana Himachal": "1010487",
+                     "Zee Rajasthan": "1010484",
+                     "Zee Uttar Pradesh Uttarakhand": "1010058",
+                     "Wion": "1011043"
+                      // Add more channels as needed
+                 };
+ 
+                 // Update the dropdown options with the channel names and codes
+                 var select = $('#search_channel');
+                 select.empty();
+                 $.each(channelData, function(channel, code) {
+                     select.append($('<option></option>').attr('value', code).text(channel + ' - ' + code));
+                 });
+             }
+ 
+             // Fetch channel data on page load
+             fetchChannelData();
+ 
+             // Handle search button click event
+             $('#search_channel').on('change', function() {
+                 var selectedOption = $(this).find('option:selected');
+                 var channelID = selectedOption.val();
+                 $('#channel_ids').val(channelID);
+             });
+             
+             // Handle form submission
+             $('form').submit(function(event) {
+                 event.preventDefault(); // Prevent default form submission
+                 // Perform AJAX request to fetch and display result
+                 $.ajax({
+                     url: 'result.html', // Change this URL to your endpoint for fetching result
+                     type: 'GET',
+                     success: function(result) {
+                         $('#result-container').html(result); // Update result container with fetched result
+                         $('#result-container').show(); // Show the result container
+                     },
+                     error: function(xhr, status, error) {
+                         console.error(error); // Log any errors to console
+                     }
+                 });
+             });
+         });
+     </script>
+</head>
+    <body>
+        <div class="form-container">
+            <div class="content">
+                <form method="post" onsubmit="loadDataFromURL(event)">
+                    <div class="form-group">
+                        <label for="search_channel">Search Channel:<br></label>
+                        <select name="search_channel" id="search_channel"></select>
+                        <!-- <button type="button" class="btn-primary" id="search_button"><b>Search</b></button> -->
+                    </div>
+                
+                    <div class="form-group">
+                        <div class="row">
+                            <label for="channel_ids" style="width: 50%; float: left;">Channel IDs:</label>
+                            <label for="filler_time" style="width: 50%; float: left;">Fillers greater than:</label>
+                        </div>
+                        <div class="row">
+                            <div class="col">
+                                <input type="text" id="channel_ids" name="channel_ids" readonly required>
+                            </div>
+                            <div class="col">
+                                <input type="text" id="filler_time" name="filler_time" pattern="^(0[0-9]|1[0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9]$" placeholder="Filler Time" required>
+                                <small class="form-text">Format: HH:MM:SS</small>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="date_range">Date Range:</label>
+                        <div class="row">
+                            <div class="col">
+                                <div class="date-input-wrapper">
+                                    <input type="date" id="start_date" name="start_date" placeholder="Start Date" required><br>
+                                    <small class="form-text">Select Start Date</small>
+                                </div>
+                            </div>
+                            <div class="col">
+                                <div class="date-input-wrapper">
+                                    <input type="date" id="end_date" name="end_date" placeholder="End Date" required><br>
+                                    <small class="form-text">Select End Date</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                
+                    <script>
+                        // JavaScript code for making the date picker calendar appear on click
+                        const dateInputs = document.querySelectorAll('input[type="date"]');
+                        dateInputs.forEach(input => {
+                            input.addEventListener('click', () => {
+                                input.focus(); // Trigger focus to show the date picker calendar
+                            });
+                        });
+                    </script>
+                
+                <div class="form-group">
+                    <label for="time_range">Time Range:</label>
+                    <div class="row">
+                        <div class="col">
+                            <input type="text" id="start_time" name="start_time" pattern="^(0[0-9]|1[0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9]$" placeholder="Start Time" required>
+                            <small class="form-text">Format: HH:MM:SS</small>
+                        </div>
+                        <div class="col">
+                            <input type="text" id="end_time" name="end_time" pattern="^(0[0-9]|1[0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9]$" placeholder="End Time" required>
+                            <small class="form-text">Format: HH:MM:SS</small>
+                        </div>
+                    </div>
+                </div>
+                <div></div>
+            
+                <script>
+                    // JavaScript code to initialize start time and automatically insert ":" in time input fields
+                    const startInput = document.getElementById('start_time');
+                    const endInput = document.getElementById('end_time');
+                    const fillerTimeInput = document.getElementById('filler_time');
+                
+                    // Initialize start time to "00:00:00"
+                    startInput.value = "06:00:00";
+                
+                    // Automatically insert ":" after every two characters
+                    startInput.addEventListener('input', function (event) {
+                        if (this.value.length === 2 || this.value.length === 5) {
+                            this.value += ':';
+                        }
+                    });
+                
+                    endInput.addEventListener('input', function (event) {
+                        if (this.value.length === 2 || this.value.length === 5) {
+                            this.value += ':';
+                        }
+                    });
+                
+                    // Remove last character on backspace
+                    startInput.addEventListener('keydown', function (event) {
+                        if (event.key === 'Backspace' && (this.value.length === 3 || this.value.length === 6)) {
+                            event.preventDefault();
+                            this.value = this.value.slice(0, -1);
+                        }
+                    });
+                
+                    endInput.addEventListener('keydown', function (event) {
+                        if (event.key === 'Backspace' && (this.value.length === 3 || this.value.length === 6)) {
+                            event.preventDefault();
+                            this.value = this.value.slice(0, -1);
+                        }
+                    });
+                    fillerTimeInput.value = "00:10:00";
+                
+                    // Automatically insert ":" after every two characters
+                    fillerTimeInput.addEventListener('input', function (event) {
+                        if (this.value.length === 2 || this.value.length === 5) {
+                            this.value += ':';
+                        }
+                    });
+
+                    fillerTimeInput.addEventListener('keydown', function (event) {
+                        if (event.key === 'Backspace' && (this.value.length === 3 || this.value.length === 6)) {
+                            event.preventDefault();
+                            this.value = this.value.slice(0, -1);
+                        }
+                    });
+
+                    function loadIndex(url) {
+                        const iframeContainer = document.getElementById('result');
+                        iframeContainer.innerHTML = '<iframe src="' + url + '" frameborder="0"></iframe>';
+                    }
+
+                    function loadDataFromURL(event) {
+                        // Prevent the default form submission behavior
+                        event.preventDefault();
+                        loadingIcon = document.getElementById('loading-icon');
+                        document.getElementById('result').innerHTML = '';
+                        loadingIcon.style.display = 'block';
+
+                        // Get the form data
+                        const formData = new FormData(event.target);
+
+                        // Construct the URL with the form data using Flask's url_for function
+                        const url = `{{ url_for('eq_route.Results') }}?search_channel=${formData.get('search_channel')}&channel_ids=${formData.get('channel_ids')}&filler_time=${formData.get('filler_time')}&start_date=${formData.get('start_date')}&end_date=${formData.get('end_date')}&start_time=${formData.get('start_time')}&end_time=${formData.get('end_time')}`;
+
+                        // Make the fetch request
+                        fetch(url)
+                            .then(response => response.text())
+                            .then(data => {
+                                // Update the page content with the received data
+                                document.getElementById('result').innerHTML = data;
+                                loadingIcon.style.display = 'none';
+                            })
+                            .catch(error => console.error(error));
+                    }
+
+                </script>
+                    <div class="form-group">
+                        <button type="submit" class="btn-primary"><b>Export</b></button>
+                    </div>
+                </form>
+            </div>
+            <div id="result-container" style="position: relative;">
+                <div id="result"></div>
+                <div class="loading-icon" id="loading-icon">
+                    <!-- Replace the URL with the path to your loading icon image -->
+                    <img src="{{ url_for('static', filename='loading-gif.gif') }}" alt="Loading" width="50" height="50">
+                </div>
+            </div>
+        </div>
+
+        <script>
+            function showFillers() {
+                console.log('bbbbb');
+                var bigFillers = document.getElementById('big_fillers');
+                var bigFillersBtn = document.getElementById('big-fill-btn');
+                
+                if (bigFillers.style.display === 'block') {
+                    bigFillers.style.display = 'none';
+                    bigFillersBtn.style.backgroundColor = 'white';
+                    
+                } else {
+                    bigFillers.style.display = 'block';
+                    bigFillersBtn.style.backgroundColor = '#ddd';
+                }
+            }
+        </script>
+        <script>
+            function showBlankStories() {
+                console.log('bbbbb');
+                var blankStories = document.getElementById('blank-stories-df');
+                var blankStoriesBtn = document.getElementById('blank-stories-btn');
+                
+                if (blankStories.style.display === 'block') {
+                    blankStories.style.display = 'none';
+                    blankStoriesBtn.style.backgroundColor = 'white';
+                    
+                } else {
+                    blankStories.style.display = 'block';
+                    blankStoriesBtn.style.backgroundColor = '#ddd';
+                }
+            }
+        </script>
+        
+
+</body>
+
+</html>

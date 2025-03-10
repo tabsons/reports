@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Result</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            margin: 20px;
+        }
+
+        h1 {
+            text-align: center;
+        }
+
+        p {
+            margin-bottom: 10px;
+        }
+
+        table {
+            width: 100%;
+            margin-top: 10px;
+            border-collapse: collapse;
+        }
+
+        th, td {
+            border: 1px solid black;
+            padding: 8px;
+            text-align: left;
+        }
+
+        button {
+            margin-top: 20px;
+            padding: 10px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background-color: #45a049;
+        }
+    </style>
+</head>
+<body>
+    <h1>Duplicate Line Items</h1>
+    
+    {% if result.get('message') %}
+        <p>{{ result['message'] }}</p>
+    {% else %}
+        <p>Total Duplicate Line Items: {{ result|length }}</p>
+        {% for key, value in result.items() %}
+            <h2>{{ key }}</h2>
+            <table>
+                <tr>
+                    <th>Channel Name</th>
+                    <th>Week Day</th>
+                    <th>Clip Start Time</th>
+                    <th>Clip End Time</th>
+                </tr>
+                {% for record in value %}
+                    <tr>
+                        <td>{{ record['Channel Name'] }}</td>
+                        <td>{{ record['Week Day'] }}</td>
+                        <td>{{ record['Clip Start Time'] }}</td>
+                        <td>{{ record['Clip End Time'] }}</td>
+                    </tr>
+                {% endfor %}
+            </table>
+            <p>
+                {% for record in value %}
+                    {{ record['Channel Name'] }}, {{ record['Week Day'] }}, {{ record['Clip Start Time'] }}, {{ record['Clip End Time'] }}{% if not loop.last %},{% endif %}
+                {% endfor %}
+            </p>
+        {% endfor %}
+        <p>File successfully processed and duplicates identified.</p>
+        <a href="{{ url_for('download', filename=filename) }}" target="_blank" rel="noopener noreferrer" download>
+            <button>Download Excel (Remove Duplicates)</button>
+        </a>
+    {% endif %}
+</body>
+</html>

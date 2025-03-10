@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Shaka Player Example</title>
+    <style>
+        body {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 80vh;
+            margin: 0;
+            background-color: #f4f4f4;
+        }
+        video {
+            width: 80%;
+            max-width: 800px;
+            margin-top: 20px;
+        }
+        input[type="text"] {
+            width: 80%;
+            max-width: 600px;
+            padding: 10px;
+            margin-top: 20px;
+            font-size: 16px;
+        }
+        button {
+            padding: 10px 20px;
+            margin-top: 10px;
+            font-size: 16px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Tabsons Stream Player</h1>
+    <input type="text" id="manifest-url" placeholder="Paste your DASH or HLS manifest URL here">
+    <button onclick="loadVideo()">Load Video</button>
+    <video id="video" controls></video>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/shaka-player/4.2.1/shaka-player.compiled.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', initApp);
+
+        function initApp() {
+            // Install built-in polyfills to patch browser incompatibilities.
+            shaka.polyfill.installAll();
+
+            // Check if the browser supports the basic functionalities required by Shaka Player.
+            if (shaka.Player.isBrowserSupported()) {
+                // Everything looks good!
+                initPlayer();
+            } else {
+                // This browser does not have the minimum set of APIs we need.
+                console.error('Browser not supported!');
+            }
+        }
+
+        function initPlayer() {
+            // Create a Player instance.
+            const video = document.getElementById('video');
+            const player = new shaka.Player(video);
+
+            // Attach player to the window to make it easy to access in the JS console.
+            window.player = player;
+
+            // Listen for error events.
+            player.addEventListener('error', onErrorEvent);
+
+            // Log current time of video every second
+            setInterval(() => {
+                console.log(`Current time: ${video.currentTime}s`);
+            }, 1000);
+        }
+
+        function loadVideo() {
+            const manifestUri = document.getElementById('manifest-url').value;
+            if (manifestUri) {
+                const player = window.player;
+                player.load(manifestUri).then(() => {
+                    console.log('The video has now been loaded!');
+                }).catch(onError);  // onError is executed if the asynchronous load fails.
+            } else {
+                console.error('Please enter a valid manifest URL.');
+            }
+        }
+
+        function onErrorEvent(event) {
+            // Extract the shaka.util.Error object from the event.
+            onError(event.detail);
+        }
+
+        function onError(error) {
+            // Log the error.
+            console.error('Error code', error.code, 'object', error);
+        }
+    </script>
+</body>
+</html>
