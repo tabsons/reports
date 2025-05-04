@@ -2,10 +2,8 @@ from flask import Flask,  Blueprint, request, render_template, send_file, Respon
 import pandas as pd
 import os
 import xlrd
-from datetime import datetime, time as t, timedelta
 from openpyxl import load_workbook
 from openpyxl.utils.dataframe import dataframe_to_rows
-from openpyxl.utils import get_column_letter
 from io import BytesIO
 import re
 import zipfile
@@ -16,6 +14,9 @@ from openpyxl.styles import Color, PatternFill, Font, Border, NamedStyle
 from scipy.spatial.distance import cosine
 from sentence_transformers import SentenceTransformer
 from datetime import time
+from openpyxl.styles import NamedStyle
+from datetime import timedelta
+
 
 val_route = Blueprint('val_route', __name__)
 
@@ -40,9 +41,9 @@ def r_s_t(text, threshold, target_string):
     len_difference = len(text_without_space) - len(target_without_space) #ADD THIS LINE
     if similarity > threshold and len_difference <= 3: #ADD THIS LINE
         return "BAD RECORDING"
-    elif "OTHER LANGUAGE" in text.upper():
+    elif re.search(r"\bOTHER LANGUAGE\b",text.upper()):
         return "OTHER LANGUAGE"
-    elif "ANOTHER LANGUAGE" in text.upper():
+    elif re.search(r"\bANOTHER LANGUAGE\b",text.upper()):
         return "OTHER LANGUAGE"
     return text  # Return the original text if no conditions are met
 
@@ -64,7 +65,7 @@ def remove_special_characters(text):
 
 
 @val_route.route('/validations/test/', methods=['GET', 'POST'])
-def test_validations_2():
+def test_validation_report():
     if request.method == 'POST':
         file = request.files['file']
         df = pd.read_excel(file, sheet_name="expressreport")
@@ -90,8 +91,8 @@ def test_validations_2():
             return "Please, Correct the file. No fields.", 400
         target_string = "BADRECORDING"
         threshold = .72
-        df["Story"] = df["Story"].apply(lambda x: r_s_t(str(x) , threshold , target_string))
-        df["Sub-Story"] = df["Sub-Story"].apply(lambda x: r_s_t(str(x) , threshold , target_string))
+        # df["Story"] = df["Story"].apply(lambda x: r_s_t(str(x) , threshold , target_string))
+        # df["Sub-Story"] = df["Sub-Story"].apply(lambda x: r_s_t(str(x) , threshold , target_string))
 
         headers = pd.read_excel('files/original_headers.xlsx')
         if len(df.columns) != len(headers.columns):
@@ -293,8 +294,8 @@ def validations():
             return "Please, Correct the file. No fields.", 400
         target_string = "BADRECORDING"
         threshold = .72
-        df["Story"] = df["Story"].apply(lambda x: r_s_t(str(x) , threshold , target_string))
-        df["Sub-Story"] = df["Sub-Story"].apply(lambda x: r_s_t(str(x) , threshold , target_string))
+        # df["Story"] = df["Story"].apply(lambda x: r_s_t(str(x) , threshold , target_string))
+        # df["Sub-Story"] = df["Sub-Story"].apply(lambda x: r_s_t(str(x) , threshold , target_string))
 
         headers = pd.read_excel('files/original_headers.xlsx')
         if len(df.columns) != len(headers.columns):
@@ -533,7 +534,7 @@ def test_validations():
         target_string = "badrecording"
         threshold = .8
         # other language
-        df["Story"] = df["Story"].apply(lambda x: r_s_t(str(x) , threshold , target_string))
+        # df["Story"] = df["Story"].apply(lambda x: r_s_t(str(x) , threshold , target_string))
 
 
         headers = pd.read_excel('files/original_headers.xlsx')
@@ -969,14 +970,101 @@ def standardize():
 
 
 
-
 @val_route.route('/drift', methods=['GET', 'POST'])
 def drift_validations():
     if request.method == 'POST':
         file = request.files['file']
         df = pd.read_excel(file, sheet_name="expressreport")
 
-        df = df.sort_values(by=['Channel Name', 'Program Date', 'Clip Start Time'], ascending=[True, True, True])
+        df = df.sort_values(by=['Channel Name', 'Program Date', 'Clip Start Time'], ascending=[True, True, True]).reset_index(drop=True)
+
+        if len(df.columns) != 34:
+            return "Keep the columns default format (34 columns), Remove extra columns", 400
+
+        # Check if there are any blanks in "Clip Start Time"
+        if df["Clip Start Time"].isna().any() or (df["Clip Start Time"] == "").any():
+            return "Blank exists in Clip Start Time", 400
+
+        # Check if there are any blanks in "Clip End Time"
+        if df["Clip End Time"].isna().any() or (df["Clip End Time"] == "").any():
+            return "Blank exists in Clip End Time", 400
+        
+        # Check if any column contains float values or incorrect format
+        if df["Clip Start Time"].apply(
+                lambda x: not isinstance(x, str) and not isinstance(x, pd.Timestamp)).any() or \
+                df["Clip End Time"].apply(
+                    lambda x: not isinstance(x, str) and not isinstance(x, pd.Timestamp)).any():
+            return "Clip Start Time or Clip End Time contains invalid format", 400
+
+        df["Clip Start Time"] = pd.to_datetime(df["Clip Start Time"], errors='coerce')
+        df["Clip End Time"] = pd.to_datetime(df["Clip End Time"], errors='coerce')
+
+        # Replace Clip Start Time if hour is 00 or 04
+        df.loc[df["Clip End Time"].dt.hour.isin([0, 4]), "Clip End Time"] = pd.Timestamp("23:59:59")
+
+        for x in range(len(df) - 1):
+            # Drift
+            # time_diff = (df.iloc[x + 1]["Clip Start Time"] - df.iloc[x]["Clip End Time"]).total_seconds()
+            # if time_diff <= 2.0 and 0 < time_diff:
+            #     df.at[x + 1, "Clip Start Time"] = df.at[x, "Clip End Time"]
+            # Overlap
+            time_diff1 = (df.iloc[x]["Clip End Time"] - df.iloc[x + 1]["Clip Start Time"]).total_seconds()
+            if time_diff1 <= 3.0 and 0 < time_diff1:
+                df.at[x + 1, "Clip Start Time"] = df.at[x, "Clip End Time"]
+
+        lst = []
+        lst1 = []
+        for x in range(len(df)):
+            print(df.iloc[x]["Clip End Time"], df.iloc[x]["Clip Start Time"])
+            lst.append(df.iloc[x]["Clip End Time"] - df.iloc[x]["Clip Start Time"])
+            lst1.append(int((df.iloc[x]["Clip End Time"] - df.iloc[x]["Clip Start Time"]).total_seconds()))
+
+        df['new_duration_hours'] = lst
+        df['new_duration_seconds'] = lst1
+        df['new_time'] = df['new_duration_hours'].dt.total_seconds().apply(
+            lambda x: f'{int(x // 3600):02}:{int((x % 3600) // 60):02}:{int(x % 60):02}')
+        df['Duration (HH:MM:SS)'] = df['new_time']
+        df['Duration (seconds)'] = df['new_duration_seconds']
+        df["Clip Start Time"] = df["Clip Start Time"].dt.strftime('%H:%M:%S')
+        df["Clip End Time"] = df["Clip End Time"].dt.strftime('%H:%M:%S')
+        df['Duration (HH:MM:SS)'] = df['Duration (HH:MM:SS)'].apply(
+        lambda x: str(x).split()[2] if len(str(x).split()) > 1 else str(x)
+    )
+        def string_to_timedelta(time_str):
+            h, m, s = map(int, time_str.split(':'))
+            return timedelta(hours=h, minutes=m, seconds=s)
+        df["Duration (HH:MM:SS)"] = df["Duration (HH:MM:SS)"].apply(string_to_timedelta)
+        df.drop(columns=['new_duration_hours', 'new_duration_seconds', 'new_time'], inplace=True)
+        # drift correction end
+        df["Duration (HH:MM:SS)"] = df["Duration (HH:MM:SS)"].astype(str).str.split("\t").str[-1].str.strip()
+        df["Duration (HH:MM:SS)"] = pd.to_timedelta(df["Duration (HH:MM:SS)"])
+
+        # Save the DataFrame to an Excel file with a header
+        wb = load_workbook('files\\header2.xlsx')
+        sheet_name = 'expressreport'
+        make_file(wb, 'expressreport', df, False)
+        output = BytesIO()
+        # time_style = NamedStyle(name="time_style", number_format="hh:mm:ss")
+        # ws = wb.active
+        # for row in ws.iter_rows(min_row=2, min_col=21, max_col=21):  # Assuming Duration is column 20
+        #     for cell in row:
+        #         cell.style = time_style
+        wb.save(output)
+        output.seek(0)
+        return send_file(output, download_name='expressreport.xlsx', as_attachment=True)
+
+    return render_template('33_validations.html')
+
+
+@val_route.route('/overlap', methods=['GET', 'POST'])
+def verify_overlap():
+    if request.method == 'POST':
+        file = request.files['file']
+        df = pd.read_excel(file, sheet_name="expressreport")
+
+        df = df.sort_values(by=['Channel Name', 'Program Date', 'Clip Start Time'],
+                            ascending=[True, True, True]).reset_index(drop=True)
+
         if len(df.columns) != 34:
             return "Keep the columns default format (34 columns), Remove extra columns", 400
 
@@ -1001,16 +1089,47 @@ def drift_validations():
         # Replace Clip Start Time if hour is 00 or 04
         df.loc[df["Clip End Time"].dt.hour.isin([0, 4]), "Clip End Time"] = pd.Timestamp("23:59:59")
 
+        issues = []
 
+        # check overlap
         for x in range(len(df) - 1):
             # Drift
-            time_diff = (df.iloc[x + 1]["Clip Start Time"] - df.iloc[x]["Clip End Time"]).total_seconds()
-            if time_diff <= 2.0 and 0 < time_diff:
-                df.at[x + 1, "Clip Start Time"] = df.at[x, "Clip End Time"]
+            # time_diff = (df.iloc[x + 1]["Clip Start Time"] - df.iloc[x]["Clip End Time"]).total_seconds()
+            # if time_diff <= 2.0 and 0 < time_diff:
+            #     df.at[x + 1, "Clip Start Time"] = df.at[x, "Clip End Time"]
             # Overlap
             time_diff1 = (df.iloc[x]["Clip End Time"] - df.iloc[x + 1]["Clip Start Time"]).total_seconds()
-            if time_diff1 <= 2.0 and 0 < time_diff1:
-                df.at[x + 1, "Clip Start Time"] = df.at[x, "Clip End Time"]
+            if time_diff1 <= 3.0 and 0 < time_diff1:
+                # df.at[x + 1, "Clip Start Time"] = df.at[x, "Clip End Time"]
+                #return "overlap found", 400
+                issues.append("overlap found")
+                break
+
+        # check duplicate
+        duplicates = df.duplicated(subset=['Channel Code', 'Program Date', 'Clip Start Time']).sum()
+        if duplicates > 0:
+            issues.append('duplicate found')
+
+
+        # check format
+        import re
+
+        # Define regex pattern for HH:MM:SS
+        pattern = re.compile(r'^\d{2}:\d{2}:\d{2}$')
+
+        # Check if each value is a string and matches the pattern
+        matches = df['Clip Start Time'].map(lambda x: isinstance(x, str) and bool(pattern.match(x))).sum()
+        if matches > 0:
+            issues.append(f"Clip Start Time Format : {matches}")
+
+        matches = df['Clip End Time'].map(lambda x: isinstance(x, str) and bool(pattern.match(x))).sum()
+        if matches > 0:
+            issues.append(f"Clip Start Time Format : {matches}")
+
+        if len(issues) > 0:
+            return f'{" ,".join(issues)}', 400
+        else:
+            return "FILE IS GOOD TO GO !!!"
 
         lst = []
         lst1 = []
@@ -1027,21 +1146,32 @@ def drift_validations():
         df['Duration (seconds)'] = df['new_duration_seconds']
         df["Clip Start Time"] = df["Clip Start Time"].dt.strftime('%H:%M:%S')
         df["Clip End Time"] = df["Clip End Time"].dt.strftime('%H:%M:%S')
+        df['Duration (HH:MM:SS)'] = df['Duration (HH:MM:SS)'].apply(
+            lambda x: str(x).split()[2] if len(str(x).split()) > 1 else str(x)
+        )
+
+        def string_to_timedelta(time_str):
+            h, m, s = map(int, time_str.split(':'))
+            return timedelta(hours=h, minutes=m, seconds=s)
+
+        df["Duration (HH:MM:SS)"] = df["Duration (HH:MM:SS)"].apply(string_to_timedelta)
         df.drop(columns=['new_duration_hours', 'new_duration_seconds', 'new_time'], inplace=True)
         # drift correction end
-
         df["Duration (HH:MM:SS)"] = df["Duration (HH:MM:SS)"].astype(str).str.split("\t").str[-1].str.strip()
         df["Duration (HH:MM:SS)"] = pd.to_timedelta(df["Duration (HH:MM:SS)"])
+
         # Save the DataFrame to an Excel file with a header
         wb = load_workbook('files\\header2.xlsx')
         sheet_name = 'expressreport'
         make_file(wb, 'expressreport', df, False)
         output = BytesIO()
+        # time_style = NamedStyle(name="time_style", number_format="hh:mm:ss")
+        # ws = wb.active
+        # for row in ws.iter_rows(min_row=2, min_col=21, max_col=21):  # Assuming Duration is column 20
+        #     for cell in row:
+        #         cell.style = time_style
         wb.save(output)
         output.seek(0)
         return send_file(output, download_name='expressreport.xlsx', as_attachment=True)
 
     return render_template('33_validations.html')
-
-
-
